@@ -416,6 +416,165 @@ function pfund_donate_button() {
 	return $donate_btn;
 }
 
+
+/**
+ * Shortcode handler for pfund-authorize-net-donate-form shortcode.  
+ * Displays Authorize.net donate form
+ * @return string HTML for donate form.
+ */
+function pfund_authorize_net_donate_form() {
+	global $post;
+	$options = get_option( 'pfund_options' );
+	if ( ! pfund_is_pfund_post() ) {
+		return '';
+	}	
+	
+	$api_login_id = $options['authorize_net_api_login_id'];
+	$transaction_key = $options['authorize_net_transaction_key'];
+	$donate_form = '';
+	
+	if ( ! empty( $transaction_key ) && ! empty( $api_login_id ) ) {
+		$donate_form = '<div class="pfund-auth-net-donate"><a href="#">Donate</a></div>
+			<form class="pfund-auth-net-form">' . 
+			pfund_draw_input('first_name', 'First Name') .
+			pfund_draw_input('last_name', 'Last Name') .
+			pfund_draw_input('address', 'Address') .
+			pfund_draw_input('city', 'City') .
+			pfund_draw_state_options() . 
+			pfund_draw_input('zip', 'Zip') .
+			pfund_draw_input('email', 'Email') .
+			pfund_draw_input('cc_num', 'Credit Card Number') .
+			pfund_draw_month_options() . 
+			pfund_draw_year_options() . 
+			pfund_draw_input('cc_cvv2', 'CVV2') .			
+			pfund_draw_input('amount', 'Donation Amount') .			
+			'<div id="pfund-input-anonymous"><input id="pfund-input-anonymous-checkbox" type="checkbox" name="anonymous" value="1"> Anonymous gift</div> 
+			<input type="hidden" name="post_id" value="' . $post->ID . '">
+			<button type="submit" value="Donate" id="pfund_donate_button">Donate</button>' .
+			wp_nonce_field('auth_net_donate_nonce', 'auth_net_donate_nonce', null, false) . 
+			'<div class="pfund-secure-donations"><a href="#" class="pfund-secure-donations-link">Donations are processed securely via Authorize.net</a></div>' .
+			pfund_print_secure_donation_text() . 
+			'</form>' . 
+			pfund_print_auth_net_js(); 
+	}
+	return $donate_form;
+}
+
+function pfund_print_auth_net_js() {
+	return '<script type="text/javascript" src="' . PFUND_URL . 'js/auth_net.js"></script>';
+}
+
+function pfund_print_secure_donation_text() {
+	return '<div class="pfund-secure-donations-text"><p>You can shop at ' . site_url() . ' with confidence. We have partnered with <a target="_blank" href="http://www.authorize.net">Authorize.Net</a>, a leading payment gateway since 1996, to accept credit cards and electronic check payments safely and securely for our customers.</p>
+		
+		<p>The Authorize.Net Payment Gateway manages the complex routing of sensitive customer information through the electronic check and credit card processing networks. See an <a target="_blank" href="http://www.authorize.net/resources/howitworksdiagram/">online payments diagram</a> to see how it works.</p>
+		
+		<p>The company adheres to strict industry standards for payment processing, including:</p>
+		<ul>
+		<li>128-bit Secure Sockets Layer (SSL) technology for secure Internet Protocol (IP) transactions.</li>
+		<li>Industry leading encryption hardware and software methods and security protocols to protect customer information.</li>
+		<li>Compliance with the Payment Card Industry Data Security Standard (PCI DSS).</li>
+		
+		<p>For additional information regarding the privacy of your sensitive cardholder data, please read the <a target="_blank" href="http://www.authorize.net/company/privacy/">Authorize.Net Privacy Policy</a>.</p></div>';
+}
+
+function pfund_draw_input($name, $text) {
+	return '<div id="pfund-input-' . $name . '">
+		<label for="' . $name . '">' . $text . ':</label>
+		<input type="text" name="' . $name . '">
+	</div>';
+}
+
+function pfund_draw_month_options() {
+	$retval = '<div><label for="cc_exp_month">Expiration Month:</label>
+			<select name="cc_exp_month">';
+	for ($i=1; $i<=12; $i++) {
+		$padded = ($i < 10 ? '0' :'') . $i;
+		$retval .= '<option value="' . $padded . '">' . $padded . ' - ' . date("M", mktime(0, 0, 0, $i, 1, 2012)) . '</option>';
+    }
+    $retval .= '</select></div>';
+    return $retval;
+}
+
+function pfund_draw_year_options() {
+	$retval = '<div><label for="cc_exp_year">Expiration Year:</label>
+			<select name="cc_exp_year">';
+	$year = date("Y");
+	for ($i=$year; $i<=$year + 8; $i++) {
+		$retval .= '<option value="' . $i . '">' . $i . '</option>';
+    }
+    $retval .= '</select></div>';
+    return $retval;
+}
+
+function pfund_draw_state_options() {
+	$states = array(
+	 'AL' => 'Alabama',
+	 'AK' => 'Alaska',
+	 'AZ' => 'Arizona',
+	 'AR' => 'Arkansas',
+	 'CA' => 'California',
+	 'CO' => 'Colorado',
+	 'CT' => 'Connecticut',
+	 'DE' => 'Delaware',
+	 'DC' => 'Dist. of Columbia',
+	 'FL' => 'Florida',
+	 'GA' => 'Georgia',
+	 'HI' => 'Hawaii',
+	 'ID' => 'Idaho',
+	 'IL' => 'Illinois',
+	 'IN' => 'Indiana',
+	 'IA' => 'Iowa',
+	 'KS' => 'Kansas',
+	 'KY' => 'Kentucky',
+	 'LA' => 'Louisiana',
+	 'ME' => 'Maine',
+	 'MD' => 'Maryland',
+	 'MA' => 'Massachusetts',
+	 'MI' => 'Michigan',
+	 'MN' => 'Minnesota',
+	 'MS' => 'Mississippi',
+	 'MO' => 'Missouri',
+	 'MT' => 'Montana',
+	 'NE' => 'Nebraska',
+	 'NV' => 'Nevada',
+	 'NH' => 'New Hampshire',
+	 'NJ' => 'New Jersey',
+	 'NM' => 'New Mexico',
+	 'NY' => 'New York',
+	 'NC' => 'North Carolina',
+	 'ND' => 'North Dakota',
+	 'OH' => 'Ohio',
+	 'OK' => 'Oklahoma',
+	 'OR' => 'Oregon',
+	 'PA' => 'Pennsylvania',
+	 'RI' => 'Rhode Island',
+	 'SC' => 'South Carolina',
+	 'SD' => 'South Dakota',
+	 'TN' => 'Tennessee',
+	 'TX' => 'Texas',
+	 'UT' => 'Utah',
+	 'VT' => 'Vermont',
+	 'VA' => 'Virginia',
+	 'WA' => 'Washington',
+	 'WV' => 'West Virginia',
+	 'WI' => 'Wisconsin',
+	 'WY' => 'Wyoming',
+	);
+	
+	
+	$retval = '<div><label for="state">State:</label>
+			<select name="state">';
+	foreach ($states as $abbr => $state) {
+		$retval .= '<option value="' . $abbr . '">' . $abbr . ' - ' . $state . '</option>';
+	}
+	$retval .= '</select></div>';
+	
+    return $retval;
+}
+
+
+
 /**
  * Shortcode handler for pfund-edit to generate campaign creation/editing form
  * and button to edit the personal fundraising fields.
@@ -817,6 +976,9 @@ function pfund_setup_shortcodes() {
 	add_shortcode( 'pfund-giver-tally', 'pfund_giver_tally' );
 	add_shortcode( 'pfund-progress-bar', 'pfund_progress_bar' );
 	add_shortcode( 'pfund-user-avatar', 'pfund_user_avatar' );
+	add_shortcode( 'pfund-authorize-net-donate-form', 'pfund_authorize_net_donate_form' );
+	add_shortcode( 'pfund-share-links', 'pfund_share_links' ); 
+
 	$options = get_option( 'pfund_options' );
 	if ( isset( $options['fields'] ) ) {
 		foreach ( $options['fields'] as $field_id => $field ) {

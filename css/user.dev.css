@@ -148,3 +148,83 @@
 	border-top-left-radius:6px;
 	border-top-right-radius:6px;
 }
+
+
+
+
+.pfund-auth-net-form {
+	margin-top: 10px;
+	padding-top: 10px;
+	border-top: 1px solid white;
+}
+
+.pfund-auth-net-form label {
+	width:150px;
+	float:left;
+	padding:5px;
+	clear:both;
+}
+
+.pfund-auth-net-form input, .pfund-auth-net-form select {
+	width:200px;
+	float:left;
+	padding:5px;
+}
+
+.pfund-auth-net-form button {
+	cursor: pointer;
+	clear: both;
+	margin-top: 10px;
+	background: orange;
+	border: 1px inset gray;
+	color: white;
+	font-size: 16px;
+	width: 150px;
+	border-radius: 10px;
+}
+
+.pfund-auth-net-form div {
+	clear:both;
+}
+
+.pfund-auth-net-form {
+	display:none;
+}
+
+
+.pfund-auth-net-donate a {
+	background: orange;
+	color: white;
+	font-size: 20px;
+	width: 200px;
+	border-radius: 10px;
+	text-decoration: none;
+	display: block;
+	padding: 10px;
+	margin: 20px auto 0;
+	text-align: center;	
+}
+
+.pfund-auth-net-form .error, .pfund-auth-net-form .success {
+	color: red;
+	margin-top: 20px;
+	background: #fff;
+	padding: 10px;
+	border: 2px dashed red;
+}
+
+.pfund-auth-net-form .success {
+	color:green;
+	border-color: green;
+}
+
+.pfund-secure-donations {
+	text-align: center;
+	margin-top: 15px;
+}
+
+.pfund-secure-donations-text {
+	display:none;
+}
+
+

@@ -248,6 +248,77 @@ function pfund_admin_init() {
 		)
 	);
 
+	
+	// Authorize.net settings
+	add_settings_section(
+		'pfund_authorize_net_options',
+		__( 'Authorize.Net Options', 'pfund' ),
+		'pfund_authorize_net_section_text',
+		'pfund'
+	);
+	add_settings_field(
+		'pfund_authorize_net_api_login_id',
+		__( 'API Login ID', 'pfund' ),
+		'pfund_option_text_field',
+		'pfund',
+		'pfund_authorize_net_options',
+		array(
+			'name' => 'authorize_net_api_login_id',
+			'value' => pfund_get_value( $options, 'authorize_net_api_login_id' )
+		)
+	);
+	add_settings_field(
+		'pfund_authorize_net_transaction_key',
+		__( 'Transaction Key', 'pfund' ),
+		'pfund_option_text_field',
+		'pfund',
+		'pfund_authorize_net_options',
+		array(
+			'name' => 'authorize_net_transaction_key',
+			'value' => pfund_get_value( $options, 'authorize_net_transaction_key' )
+		)
+	);
+	add_settings_field(
+		'authorize_net_product_name',
+		__( 'Product/Donation name (for Authorize.net reports)', 'pfund' ),
+		'pfund_option_text_field',
+		'pfund',
+		'pfund_authorize_net_options',
+		array(
+			'name' => 'authorize_net_product_name',
+			'value' => pfund_get_value( $options, 'authorize_net_product_name' )
+		)
+	);
+	$use_ssl = pfund_get_value( $options, 'use_ssl', false ); 
+	add_settings_field(
+		'pfund_use_ssl',
+		__( 'Use SSL (Required for Authorize.net - only turn off for testing)', 'pfund' ),
+		'pfund_option_text_field',
+		'pfund',
+		'pfund_authorize_net_options',
+		array(
+			'name' => 'use_ssl',
+			'type' => 'checkbox',
+			'value' => $use_ssl
+		)
+	);
+	$auth_net_test_mode = pfund_get_value( $options, 'authorize_net_test_mode', false ); 
+	add_settings_field(
+		'pfund_authorize_net_test_mode',
+		__( 'Test Mode (Requires Authorize.net Test Account)', 'pfund' ),
+		'pfund_option_text_field',
+		'pfund',
+		'pfund_authorize_net_options',
+		array(
+			'name' => 'authorize_net_test_mode',
+			'type' => 'checkbox',
+			'value' => $auth_net_test_mode
+		)
+	);
+	
+	
+	
+	
 	add_settings_section(
 		'pfund_mailchimp_options',
 		__( 'MailChimp Options', 'pfund' ),
@@ -669,6 +740,15 @@ function pfund_paypal_section_text() {
 function pfund_permissions_section_text() {
 	echo '<p>'.__( 'Settings to determine who can create or submit campaigns', 'pfund' ).'</p>';
 }
+
+
+/**
+ * Text to display in personal fundraising settings in the Authorize.net section.
+ */
+function pfund_authorize_net_section_text() {
+	echo '<p>'.__( 'Authorize.net settings for personal fundraiser', 'pfund' ).'</p>';
+}
+
 
 /**
  * Add a settings link to the plugin listing

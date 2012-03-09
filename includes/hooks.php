@@ -79,4 +79,12 @@ add_filter( 'the_title', 'pfund_handle_title', 10, 2 );
 
 add_filter( 'query_vars', 'pfund_query_vars' );
 
+
+
+add_action('wp', 'force_ssl_for_campaign_pages');
+
+add_action('wp_ajax_pfund_auth_net_donation', 'pfund_auth_net_donation');
+
+add_action('wp_ajax_nopriv_pfund_auth_net_donation', 'pfund_auth_net_donation');
+
 ?>

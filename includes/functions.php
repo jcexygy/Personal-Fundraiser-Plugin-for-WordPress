@@ -723,4 +723,194 @@ function _pfund_sort_fields( $field, $compare_field ) {
 	
 }
 
+
+
+function force_ssl_for_campaign_pages() {
+	global $post; 
+	$options = get_option('pfund_options'); 
+	if ($options['use_ssl']==1 && ! $_SERVER['HTTPS']) {
+		if ( ! is_admin() && $post->post_type=='pfund_campaign') {
+	   		header("HTTP/1.1 301 Moved Permanently");
+	   		header("Location: https://".$_SERVER['HTTP_HOST'].$_SERVER['REQUEST_URI']);
+	   		exit();
+	   	}
+	}
+}
+
+/**
+ * Process an Authorize.net donation.
+ * @return array with the following keys:
+ *   success -- boolean indicating if transaction was successful.
+ *   amount -- Transaction amount
+ *   donor_first_name -- Donor first name
+ *   donor_last_name -- Donor last name
+ *   donor_email -- Donor email
+ *   error_code -- When an error occurs, one of the following values is returned:
+ *		no_response_returned -- A response was not received from PayPal.
+ *		auth_net_failure -- PayPal returned a failure.
+ *		wp_error -- A WP error was returned.
+ *		exception_encountered -- An unexpected exception was encountered.
+ *	 wp_error -- If the error_code is wp_error, the WP_Error object returned.
+ *	 error_msg -- Text message describing error encountered.
+ */
+function pfund_process_authorize_net() {
+
+	$return_array = array( 'success' => false );
+	if ( ! (int)$_POST['cc_num'] || ! (int)$_POST['amount'] || ! $_POST['email'] || ! $_POST['first_name']
+		 || ! $_POST['last_name'] || ! $_POST['address'] || ! $_POST['city'] || ! $_POST['zip']) {
+		if ( ! (int)$_POST['cc_num']) {
+			$return_array['error_msg'] = 'Error: Please enter a valid Credit Card number.';
+		} elseif ( ! (int)$_POST['amount']) {
+			$return_array['error_msg'] = 'Error: Please enter a donation amount.';
+		} elseif ( ! $_POST['email']) {
+			$return_array['error_msg'] = 'Error: Please enter a valid email address.';
+		} elseif ( ! $_POST['first_name']) {
+			$return_array['error_msg'] = 'Error: Please enter your first name.';
+		} elseif ( ! $_POST['last_name']) {
+			$return_array['error_msg'] = 'Error: Please enter your last name.';
+		} elseif ( ! $_POST['address']) {
+			$return_array['error_msg'] = 'Error: Please enter your address.';
+		} elseif ( ! $_POST['city']) {
+			$return_array['error_msg'] = 'Error: Please enter your city.';
+		} elseif ( ! $_POST['zip']) {
+			$return_array['error_msg'] = 'Error: Please enter your zip code.';
+		}
+		return $return_array;
+	}
+	
+	//process Authorize.net donation
+	require('AuthnetAIM.class.php');
+	 
+	try
+	{
+		$pfund_options = get_option('pfund_options');
+		
+	    //$user_id = 1;
+	    $email   = $_POST['email'];
+	    $product = ($pfund_options['authorize_net_product_name'] !='') ? $pfund_options['authorize_net_product_name'] : 'Donation';
+	    $business_firstname = $_POST['first_name'];
+	    $business_lastname  = $_POST['last_name'];
+	    $business_address   = $_POST['address'];
+	    $business_city      = $_POST['city'];
+	    $business_state     = $_POST['state'];
+	    $business_zipcode   = $_POST['zip'];
+	 
+	    //$creditcard = '4111-1111-1111-1111';
+	    $creditcard = $_POST['cc_num'];
+	    $expiration = $_POST['cc_exp_month'] . '-' . $_POST['cc_exp_year'];
+	    $total      = $_POST['amount'];
+	    $cvv        = $_POST['cc_cvv2'];
+	    $invoice    = substr(time(), 0, 6);
+	    //$tax        = 0.00;
+	    
+	    
+	    $api_login = $pfund_options['authorize_net_api_login_id'];
+	    $transaction_key = $pfund_options['authorize_net_transaction_key']; //echo $api_login . " " . $transaction_key;
+	 
+	    $payment = new AuthnetAIM($api_login, $transaction_key, ($pfund_options['authorize_net_test_mode']==1) ? true : false );
+
+	    $payment->setTransaction($creditcard, $expiration, $total, $cvv, $invoice);
+	    $payment->setParameter("x_duplicate_window", 180);
+	    //$payment->setParameter("x_cust_id", $user_id);
+	    $payment->setParameter("x_customer_ip", $_SERVER['REMOTE_ADDR']);
+	    $payment->setParameter("x_email", $email);
+	    $payment->setParameter("x_email_customer", FALSE);
+	    $payment->setParameter("x_first_name", $business_firstname);
+	    $payment->setParameter("x_last_name", $business_lastname);
+	    $payment->setParameter("x_address", $business_address);
+	    $payment->setParameter("x_city", $business_city);
+	    $payment->setParameter("x_state", $business_state);
+	    $payment->setParameter("x_zip", $business_zipcode);
+	    //$payment->setParameter("x_phone", $business_telephone);
+	    //$payment->setParameter("x_ship_to_first_name", $shipping_firstname);
+	    //$payment->setParameter("x_ship_to_last_name", $shipping_lastname);
+	    //$payment->setParameter("x_ship_to_address", $shipping_address);
+	    //$payment->setParameter("x_ship_to_city", $shipping_city);
+	    //$payment->setParameter("x_ship_to_state", $shipping_state);
+	    //$payment->setParameter("x_ship_to_zip", $shipping_zipcode);
+	    $payment->setParameter("x_description", $product);
+
+	    $payment->process();
+	 
+	    if ($payment->isApproved()) 
+	    {
+			// if success, return array
+			$return_array['amount'] = $_POST['amount'];
+			$return_array['donor_email'] = $_POST['email'];
+
+			if ($_POST['anonymous']==1) {
+				$return_array['anonymous'] == true;
+			} else {
+				$return_array['donor_first_name'] = $_POST['first_name'];
+				$return_array['donor_last_name'] = $_POST['last_name'];
+			}
+			
+			
+			$return_array['transaction_nonce'] = $_POST['auth_net_donate_nonce'] . rand(0,999999999999);
+			$return_array['success'] = true;
+
+	    }
+	    else if ($payment->isDeclined())
+	    {
+	        // Get reason for the decline from the bank. This always says,
+	        // "This credit card has been declined". Not very useful.
+	        $reason = $payment->getResponseText();
+	 
+	        $return_array['error_msg'] = "This credit card has been declined. Please use another form of payment.";
+	    }
+	    else if ($payment->isError())
+	    {	 
+	        // Capture a detailed error message. No need to refer to the manual
+	        // with this one as it tells you everything the manual does.
+	        $return_array['error_msg'] =  $payment->getResponseMessage();
+	 
+	        // We can tell what kind of error it is and handle it appropriately.
+	        if ($payment->isConfigError())
+	        {
+	            // We misconfigured something on our end.
+	            //$return_array['error_msg'] .= " Please notify the webmaster of this error.";
+	        }
+	        else if ($payment->isTempError())
+	        {
+	            // Some kind of temporary error on Authorize.Net's end. 
+	            // It should work properly "soon".
+	            $return_array['error_msg'] .= " Please try your donation again.";
+	        }
+	        else
+	        {
+	            // All other errors.
+	        }
+	 
+	    }
+	}
+	catch (AuthnetAIMException $e)
+	{
+	    $return_array['error_msg'] = 'There was an error processing the transaction. Here is the error message: ';
+	    $return_array['error_msg'] .= $e->__toString();
+	}
+
+
+	return $return_array;
+	
+	
+
+}
+
+
+function pfund_auth_net_donation() {
+	$post = get_post($_POST['post_id']);
+	$transaction_array = pfund_process_authorize_net();
+
+	if ($transaction_array['success']) {
+		pfund_add_gift( $transaction_array, $post ); 
+		$msg['success'] = true;
+	} else {
+		$msg['success'] = false;
+		$msg['error'] = $transaction_array['error_msg'];
+	}
+	
+	echo json_encode($msg);
+	die();
+}
+
 ?>
